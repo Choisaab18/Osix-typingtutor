@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Osix — Learn</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="side-title">Menu</div>
+    <button class="side-btn" onclick="location.href='dashboard.html'">Home</button>
+    <button class="side-btn active">Learning Typing</button>
+    <button class="side-btn" onclick="location.href='choose.html'">Choose Test</button>
+    <div class="side-bottom"><div>OSIX</div><div class="small">Made in India</div></div>
+  </aside>
+
+  <div style="flex:1;display:flex;flex-direction:column">
+    <div class="topbar"><div class="top-left"><div class="dots">•••</div><div style="margin-left:8px"><div class="top-user">Learning</div></div></div><div>OSIX</div></div>
+    <div class="content page">
+      <h3 class="big-title">Learning Typing</h3>
+      <p class="small">Choose a module</p>
+
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px">
+        <button class="chip" onclick="openLesson('english_home')">English — Home row</button>
+        <button class="chip" onclick="openLesson('english_top')">English — Top row</button>
+        <button class="chip" onclick="openLesson('english_bottom')">English — Bottom row</button>
+        <button class="chip" onclick="openLesson('mix_words')">Mix word practice</button>
+        <button class="chip" onclick="openLesson('sentences')">Sentence practice</button>
+        <button class="chip" onclick="openLesson('paragraphs')">Paragraph practice</button>
+      </div>
+
+      <div id="lessonArea" style="margin-top:18px">
+        <h4 id="lessonTitle">Select a lesson</h4>
+        <div id="lessonContent" class="passage" style="margin-top:8px"></div>
+        <div style="margin-top:8px"><button class="btn" onclick="startLessonTest()">Start Practice Test</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+<script>
+  function openLesson(id){
+    const lessons = {
+      english_home: {title:'Home row practice', content:'asdf jkl; asdf jkl; ...\nPractice these sequences...'},
+      english_top: {title:'Top row practice', content:'qwerty uiop qwerty uiop ...'},
+      english_bottom: {title:'Bottom row practice', content:'zxcv bnm, zxcv bnm ...'},
+      mix_words: {title:'Mix words', content:'apple banana orange table chair design ...'},
+      sentences: {title:'Sentence practice', content:'This is a sample sentence for typing practice. Repeat sentences to build speed.'},
+      paragraphs: {title:'Paragraph practice', content:'This is a short paragraph to practice typing longer texts. Focus on accuracy while maintaining speed.'}
+    };
+    const l = lessons[id];
+    document.getElementById('lessonTitle').innerText = l.title;
+    document.getElementById('lessonContent').innerText = l.content;
+    sessionStorage.setItem('osix_lesson_passage', l.content);
+  }
+  function startLessonTest(){
+    const p = sessionStorage.getItem('osix_lesson_passage') || document.getElementById('lessonContent').innerText;
+    beginTest(p, 120);
+    location.href = 'choose.html';
+  }
+</script>
+</body></html>
