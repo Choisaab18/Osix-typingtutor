@@ -1,295 +1,197 @@
-/* OSIX Typing Tutor — Shared script (localStorage mode)
-   Files using this script: index.html, home.html, choose.html, profile.html
-   Keys: osix_users_v3, osix_current_v3
+/* OSIX Typing Tutor — Local version
+   - Users saved in localStorage key 'osix_users_v4'
+   - Current user id in 'osix_current_v4'
+   - Pre-generated 50 tests (ChatGPT)
 */
-const LS_USERS = 'osix_users_v3';
-const LS_CUR = 'osix_current_v3';
+const LS_USERS = 'osix_users_v4';
+const LS_CUR = 'osix_current_v4';
+const LS_DAILY_KEY = 'osix_daily_test_v4'; // stores today's daily paragraph + date
 
-/* ---------- localStorage helpers ---------- */
-function readUsers(){ try{ return JSON.parse(localStorage.getItem(LS_USERS))||[] }catch(e){return[]}}
-function writeUsers(u){ localStorage.setItem(LS_USERS, JSON.stringify(u))}
-function setCurrent(uid){ localStorage.setItem(LS_CUR, uid)}
-function getCurrent(){ return localStorage.getItem(LS_CUR)}
+/* ---------------- storage helpers ---------------- */
+function readUsers(){ try{ return JSON.parse(localStorage.getItem(LS_USERS))||[] }catch(e){return[]} }
+function writeUsers(u){ localStorage.setItem(LS_USERS, JSON.stringify(u)) }
+function setCurrent(uid){ localStorage.setItem(LS_CUR, uid) }
+function getCurrent(){ return localStorage.getItem(LS_CUR) }
+function genId(prefix='x'){ return prefix+Date.now()+Math.floor(Math.random()*900) }
 
-/* ---------- Simple Auth (index.html) ---------- */
-function signupLocal(name,mobile,email,pass){
-  const users = readUsers();
-  if(users.find(u=>u.mobile===mobile)) return {ok:false,msg:'Mobile already registered'};
-  const id = 'u'+Date.now();
-  const user = { id, name, mobile, email, pass, district:'', state:'', joined:new Date().toISOString(), avatar:'', results:[] };
-  users.push(user); writeUsers(users); setCurrent(id);
-  return {ok:true,user};
-}
-function loginLocal(mobile,pass){
-  const users = readUsers();
-  const u = users.find(x=>x.mobile===mobile && x.pass===pass);
-  return u? {ok:true,u}:{ok:false,msg:'Invalid credentials'};
-}
-function resetPasswordLocal(mobile,newPass){
-  const users = readUsers();
-  const u = users.find(x=>x.mobile===mobile);
-  if(!u) return {ok:false,msg:'User not found'};
-  u.pass = newPass; writeUsers(users); return {ok:true};
-}
-
-/* ---------- On index.html: bind UI ---------- */
-function bindIndex(){
-  const loginBtn = document.getElementById('loginBtn');
-  const signupBtn = document.getElementById('signupBtn');
-
-  if(loginBtn){
-    loginBtn.addEventListener('click', ()=>{
-      const m = document.getElementById('loginMobile').value.trim();
-      const p = document.getElementById('loginPass').value;
-      if(!m||!p){ alert('Enter mobile & password'); return; }
-      const res = loginLocal(m,p);
-      if(!res.ok){ alert(res.msg); return; }
-      // set current and redirect to home
-      setCurrent(res.u.id);
-      location.href = 'home.html';
-    });
-  }
-  if(signupBtn){
-    signupBtn.addEventListener('click', ()=>{
-      const n = document.getElementById('suName').value.trim();
-      const m = document.getElementById('suMobile').value.trim();
-      const e = document.getElementById('suEmail').value.trim();
-      const p = document.getElementById('suPass').value;
-      if(!n||!m||!p){ alert('Fill required'); return; }
-      const r = signupLocal(n,m,e,p);
-      if(!r.ok){ alert(r.msg); return; }
-      alert('Account created');
-      location.href = 'home.html';
-    });
-  }
-  // forgot password demo flow
-  const fpSend = document.getElementById('fpSend');
-  if(fpSend){
-    fpSend.addEventListener('click', ()=>{
-      const m = document.getElementById('fpMobile').value.trim();
-      if(!m){ alert('Enter mobile'); return; }
-      const users = readUsers(); const u = users.find(x=>x.mobile===m);
-      if(!u){ alert('No such mobile'); return; }
-      // demo OTP: 1234
-      document.getElementById('fpOtpWrap').classList.remove('hidden');
-      alert('Demo OTP sent: 1234 (production: integrate Firebase)');
-      document.getElementById('fpResetBtn').addEventListener('click', ()=>{
-        const otp = document.getElementById('fpOtp').value.trim();
-        if(otp !== '1234'){ alert('Wrong OTP'); return; }
-        const np = document.getElementById('fpNewPass').value;
-        if(!np){ alert('Enter new password'); return; }
-        resetPasswordLocal(m,np);
-        alert('Password reset. Login now.');
-        document.getElementById('fpOtpWrap').classList.add('hidden');
-        document.getElementById('forgotForm').classList.add('hidden');
-        document.getElementById('loginForm').classList.remove('hidden');
-      }, {once:true});
-    });
-  }
-}
-
-/* ---------- Home & navigation (home.html) ---------- */
-function bindHome(){
-  // setup sidebar clicks
-  document.querySelectorAll('.side-btn').forEach(b=>{
-    b.addEventListener('click', ()=>{
-      if(b.dataset.page==='logout'){ doLogout(); return; }
-      document.querySelectorAll('.side-btn').forEach(x=>x.classList.remove('active'));
-      b.classList.add('active');
-      navigateTo(b.dataset.page);
-    });
-  });
-  // profile clicks
-  document.getElementById('topAvatar')?.addEventListener('click', ()=> location.href='profile.html');
-  document.getElementById('sideAvatar')?.addEventListener('click', ()=> location.href='profile.html');
-
-  // load user
-  const cur = getCurrent();
-  if(!cur){ location.href='index.html'; return; }
-  const u = readUsers().find(x=>x.id===cur);
-  if(!u){ location.href='index.html'; return; }
-  // render header avatars & name
-  document.getElementById('sideAvatar').querySelector('img').src = u.avatar || (`https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=7c3aed&color=fff`);
-  document.getElementById('topAvatar').src = u.avatar || (`https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=7c3aed&color=fff`);
-  document.getElementById('sideName').innerText = u.name;
-  document.getElementById('topUserName').innerText = u.name;
-  // small brand logo
-  document.getElementById('brandLogoSmall').src = ''; // leave blank or set path if you upload
-  // load tests and UI
-  renderTestsList();
-  renderMyResults();
-  renderLeaderBoard();
-}
-
-/* navigate pages inside app (home.html contains elements for multiple subpages) */
-function navigateTo(page){
-  // in home.html we may have sections (home, choose, leader, results, learn)
-  document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
-  const el = document.getElementById('page'+capitalize(page));
-  if(el) el.classList.remove('hidden');
-}
-function capitalize(s){ if(!s) return ''; return s.charAt(0).toUpperCase()+s.slice(1); }
-
-/* logout */
-function doLogout(){ localStorage.removeItem(LS_CUR); location.href='index.html'; }
-
-/* ---------- Profile (profile.html) ---------- */
-function bindProfile(){
-  const cur = getCurrent();
-  if(!cur){ location.href='index.html'; return; }
-  const users = readUsers();
-  const u = users.find(x=>x.id===cur);
-  if(!u) { location.href='index.html'; return; }
-
-  // fill fields
-  document.getElementById('profileBig').src = u.avatar || (`https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=7c3aed&color=fff`);
-  document.getElementById('pfName').value = u.name || '';
-  document.getElementById('pfMobile').value = u.mobile || '';
-  document.getElementById('pfEmail').value = u.email || '';
-  document.getElementById('pfDistrict').value = u.district || '';
-  document.getElementById('pfState').value = u.state || '';
-  // avatar upload
-  document.getElementById('choosePicBtn').addEventListener('click', ()=> document.getElementById('filePic').click());
-  document.getElementById('filePic').addEventListener('change', (ev)=> {
-    const f = ev.target.files[0];
-    if(!f) return;
-    const r = new FileReader(); r.onload = e=> {
-      document.getElementById('profileBig').src = e.target.result;
-      u.avatar = e.target.result; writeUsers(users); alert('Profile photo updated');
-    }; r.readAsDataURL(f);
-  });
-  document.getElementById('editDetails').addEventListener('click', ()=> toggleProfile(true));
-  document.getElementById('saveDetails').addEventListener('click', ()=> {
-    u.name = document.getElementById('pfName').value.trim();
-    u.mobile = document.getElementById('pfMobile').value.trim();
-    u.email = document.getElementById('pfEmail').value.trim();
-    u.district = document.getElementById('pfDistrict').value.trim();
-    u.state = document.getElementById('pfState').value.trim();
-    writeUsers(users);
-    alert('Saved'); toggleProfile(false); location.href='home.html';
-  });
-}
-function toggleProfile(on){
-  ['pfName','pfMobile','pfEmail','pfDistrict','pfState'].forEach(id=>{
-    document.getElementById(id).disabled = !on;
-  });
-}
-
-/* ---------- Tests (shared) ---------- */
-/* generate 50 tests (placeholder passages ~200 words each) */
+/* ---------- Generated tests (50) ---------- */
 const TESTS = (function(){
-  const topics = ['CGL - Governance','CHSL - Basic Maths','Delhi Police - Comprehension','Bank PO - Economy','RRB - Technical','TGT History','UPSSSC - GK','Current Affairs','Science & Tech','Environment'];
+  const topics = ['CGL Governance','CHSL Maths','Delhi Police Comprehension','Bank PO Economy','RRB Technical','TGT History','UPSSSC GK','Current Affairs','Science & Tech','Environment'];
   const arr=[];
   for(let i=1;i<=50;i++){
-    const topic = topics[i % topics.length];
-    const sample = (`Test ${i} — ${topic}. ` + "This is a sample paragraph intended for typing practice. ".repeat(20)).slice(0,1200);
-    arr.push({ id:'t'+i, title:`Test ${i} — ${topic}`, passage: sample, words: 200, difficulty: (i%3===0?'high': (i%3===1?'medium':'low'))});
+    const t=topics[i%topics.length];
+    const body = (`Test ${i} — ${t}. ` + ("This paragraph is for typing practice. ").repeat(20)).slice(0,1200);
+    arr.push({id:'t'+i,title:`Test ${i} — ${t}`,passage:body,words:200,difficulty:(i%3===0?'high':(i%3===1?'medium':'low'))});
   }
   return arr;
 })();
 
+/* ---------- OTP login (index.html) ---------- */
+/* Get OTP: random 4 digits shown in alert & on page (demo) */
+function getOtpFor(number){
+  const otp = String(1000 + Math.floor(Math.random()*9000));
+  sessionStorage.setItem('osix_demo_otp', otp);
+  sessionStorage.setItem('osix_demo_mobile', number);
+  // also display in page (demo)
+  return otp;
+}
+
+/* Index page bindings */
+function initIndexPage(){
+  document.getElementById('btnGetOtp').addEventListener('click', ()=>{
+    const name = document.getElementById('inpName').value.trim();
+    const mobile = document.getElementById('inpMobile').value.trim();
+    if(!name || !mobile){ alert('Enter name and mobile'); return; }
+    const otp = getOtpFor(mobile);
+    document.getElementById('otpNote').innerText = `Demo OTP: ${otp} (displayed for testing)`;
+    document.getElementById('otpWrap').classList.remove('hidden');
+    alert('OTP (demo) sent: '+otp);
+  });
+  document.getElementById('btnVerifyOtp').addEventListener('click', ()=>{
+    const entered = document.getElementById('inpOtp').value.trim();
+    const otp = sessionStorage.getItem('osix_demo_otp');
+    const mobile = sessionStorage.getItem('osix_demo_mobile');
+    const name = document.getElementById('inpName').value.trim();
+    if(entered !== otp){ alert('Incorrect OTP'); return; }
+    // login or signup local
+    let users = readUsers();
+    let user = users.find(u=>u.mobile===mobile);
+    if(!user){
+      user = { id: genId('u'), name, mobile, email:'', district:'', state:'', joined:new Date().toISOString(), avatar:'', results:[] };
+      users.push(user); writeUsers(users);
+    } else {
+      // update name if empty
+      if(!user.name) user.name = name;
+      writeUsers(users);
+    }
+    setCurrent(user.id);
+    // clear demo otp
+    sessionStorage.removeItem('osix_demo_otp'); sessionStorage.removeItem('osix_demo_mobile');
+    // go to dashboard
+    location.href = 'dashboard.html';
+  });
+}
+
+/* ---------- Dashboard (home) init ---------- */
+function initDashboard(){
+  const cur = getCurrent();
+  if(!cur) { location.href='index.html'; return; }
+  const users = readUsers(); const u = users.find(x=>x.id===cur);
+  if(!u){ location.href='index.html'; return; }
+  // top name (3 dots replace avatar)
+  document.getElementById('topName').innerText = u.name || u.mobile;
+  document.getElementById('sideName').innerText = u.name || u.mobile;
+  // render tests (home)
+  renderTestsList();
+  // daily placeholder
+  ensureDailyTest();
+}
+
+/* render tests on home page */
 function renderTestsList(){
   const container = document.getElementById('testsList');
   if(!container) return;
   container.innerHTML = '';
   TESTS.forEach(t=>{
     const d = document.createElement('div'); d.className='test-card';
-    d.innerHTML = `<strong>${t.title}</strong><p class="small">${t.passage.slice(0,120)}...</p><div style="margin-top:8px"><button class="btn" onclick="beginTestById('${t.id}')">Start</button></div>`;
+    d.innerHTML = `<strong>${t.title}</strong><p class="small">${t.passage.slice(0,120)}...</p><div style="margin-top:8px"><button class="btn" onclick="startTestById('${t.id}')">Start</button></div>`;
     container.appendChild(d);
   });
 }
-window.beginTestById = function(id){
-  // find test and open choose.html with passage preloaded
-  const t = TESTS.find(x=>x.id===id);
-  if(!t) return alert('Test not found');
-  // store preloaded test and redirect
-  localStorage.setItem('osix_preload', JSON.stringify({passage:t.passage, title:t.title}));
-  location.href = 'choose.html';
-};
 
-/* choose.html bindings */
-function bindChoose(){
-  // load preloaded if exists
-  const pre = JSON.parse(localStorage.getItem('osix_preload')||'null');
+/* start by id -> redirect to choose with preload */
+function startTestById(id){
+  const test = TESTS.find(t=>t.id===id);
+  if(!test) return alert('Test not found');
+  localStorage.setItem('osix_preload_test', JSON.stringify({title:test.title,passage:test.passage}));
+  location.href = 'choose.html';
+}
+
+/* ---------- Choose page init ---------- */
+function initChoose(){
+  // verify login
+  const cur = getCurrent(); if(!cur){ location.href='index.html'; return; }
+  const pre = JSON.parse(localStorage.getItem('osix_preload_test')||'null');
   if(pre){
-    document.getElementById('passagePreview').innerText = pre.passage.slice(0,400);
     document.getElementById('chooseTitle').innerText = pre.title;
+    document.getElementById('passagePreview').innerText = pre.passage.slice(0,400);
   } else {
-    // random preview
     const t = TESTS[Math.floor(Math.random()*TESTS.length)];
-    document.getElementById('passagePreview').innerText = t.passage.slice(0,400);
     document.getElementById('chooseTitle').innerText = t.title;
+    document.getElementById('passagePreview').innerText = t.passage.slice(0,400);
   }
-  document.getElementById('startChosen').addEventListener('click', ()=> {
+  document.getElementById('startChosen').addEventListener('click', ()=>{
     const time = parseInt(document.getElementById('chooseTime').value,10) || 60;
     const passage = (pre && pre.passage) || TESTS[Math.floor(Math.random()*TESTS.length)].passage;
     beginTest(passage, time);
   });
 }
 
-/* ---------- Test runner core (used by choose & test) ---------- */
-let runner = { original:'', typed:'', timeLeft:0, interval:null, startTs:0 };
+/* ---------- Runner core (shared) ---------- */
+let runner = { original:'',typed:'',timeLeft:0,interval:null,startTs:0,settings:{highlight:true,autoscr:true,allowBack:true,fontSize:17} };
 
 function beginTest(passage, seconds){
-  // store runner in sessionStorage and open choose.html as test view
-  sessionStorage.setItem('osix_runner', JSON.stringify({passage, seconds}));
-  // if on choose.html we swap to test view; else redirect to choose.html
+  sessionStorage.setItem('osix_runner', JSON.stringify({passage,seconds,settings:runner.settings}));
+  // if on choose page, open runner view; else go to choose.html and it will auto-start
   if(location.pathname.endsWith('choose.html')){
     openTestView();
   } else {
-    location.href = 'choose.html';
-    setTimeout(()=> openTestView(), 200);
+    location.href='choose.html';
+    setTimeout(()=> openTestView(),300);
   }
 }
+
 function openTestView(){
-  const r = JSON.parse(sessionStorage.getItem('osix_runner')||'null');
-  if(!r) return;
-  runner.original = r.passage;
-  runner.timeLeft = r.seconds;
+  const data = JSON.parse(sessionStorage.getItem('osix_runner')||'null');
+  if(!data) return;
+  runner.original = data.passage;
+  runner.timeLeft = data.seconds;
   runner.typed = '';
   runner.startTs = Date.now();
+  // set UI
   document.getElementById('testPass').innerHTML = renderPassageHtml(runner.original,'');
   document.getElementById('testInput').value = '';
   document.getElementById('tLeft').innerText = runner.timeLeft;
   document.getElementById('tWpm').innerText = 0;
   document.getElementById('tAcc').innerText = 0;
+  // apply font size if present
+  const fontRange = document.getElementById('optFont');
+  if(fontRange) document.getElementById('testPass').style.fontSize = fontRange.value + 'px';
   // start timer
   if(runner.interval) clearInterval(runner.interval);
-  runner.interval = setInterval(()=> {
+  runner.interval = setInterval(()=>{
     runner.timeLeft--;
     document.getElementById('tLeft').innerText = runner.timeLeft;
     computeLiveRunner();
-    if(runner.timeLeft<=0){ finishTestRunner(); }
+    if(runner.timeLeft<=0) finishTestRunner();
   },1000);
-  // ensure test page visible
-  document.getElementById('testInput').focus();
 }
 
 function renderPassageHtml(text, typed){
   const out=[];
   for(let i=0;i<text.length;i++){
     const ch = text[i] === ' ' ? '\u00A0' : text[i];
-    const cls = (typed[i]==null)?'': (typed[i]===text[i]? 'correct':'wrong');
+    const cls = (typed[i]==null)?'': (typed[i]===text[i]?'correct':'wrong');
     out.push(`<span class="${cls}">${escapeHtml(ch)}</span>`);
   }
   return out.join('');
 }
 function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-function onTypingInput(){
+function onTyping(){ // bound in HTML
   const val = document.getElementById('testInput').value;
   runner.typed = val;
-  document.getElementById('testPass').innerHTML = renderPassageHtml(runner.original, val);
+  document.getElementById('testPass').innerHTML = renderPassageHtml(runner.original,val);
   computeLiveRunner();
 }
-window.onTyping = onTypingInput;
 
 function computeLiveRunner(){
-  const typed = runner.typed||'';
+  const typed = runner.typed || '';
+  const target = runner.original || '';
   let correct=0;
-  for(let i=0;i<typed.length;i++) if(typed[i]===runner.original[i]) correct++;
+  for(let i=0;i<typed.length;i++) if(typed[i]===target[i]) correct++;
   const total = typed.length;
-  const accuracy = total? Math.round((correct/total)*10000)/100 : 0;
+  const accuracy = total? Math.round((correct/total)*10000)/100:0;
   const elapsed = Math.max(1, Math.floor((Date.now()-runner.startTs)/1000));
   const mins = Math.max(elapsed/60, 1/60);
   const words = typed.trim().split(/\s+/).filter(Boolean).length;
@@ -300,72 +202,137 @@ function computeLiveRunner(){
 
 function finishTestRunner(){
   if(runner.interval) clearInterval(runner.interval);
-  const typed = runner.typed||'';
+  const typed = runner.typed || '';
+  const target = runner.original || '';
   let correct=0;
-  for(let i=0;i<typed.length;i++) if(typed[i]===runner.original[i]) correct++;
+  for(let i=0;i<typed.length;i++) if(typed[i]===target[i]) correct++;
   const total = typed.length;
-  const accuracy = total? Math.round((correct/total)*10000)/100 : 0;
+  const accuracy = total? Math.round((correct/total)*10000)/100:0;
   const elapsed = Math.max(1, Math.floor((Date.now()-runner.startTs)/1000));
   const mins = Math.max(elapsed/60, 1/60);
   const words = typed.trim().split(/\s+/).filter(Boolean).length;
   const wpm = Math.round(words/mins);
-
-  // save into user
+  // save to user
   const uid = getCurrent();
   if(uid){
     const users = readUsers(); const u = users.find(x=>x.id===uid);
     if(u){
-      const rec = { id:'r'+Date.now(), wpm, accuracy, elapsed, date:new Date().toISOString(), passage: runner.original.slice(0,300) };
+      const rec = {id:genId('r'),wpm,accuracy,elapsed,date:new Date().toISOString(),passage:runner.original.slice(0,400)};
       u.results = u.results||[]; u.results.unshift(rec); writeUsers(users);
-      alert(`Test saved — WPM: ${wpm} • Acc: ${accuracy}%`);
     }
-  } else {
-    alert(`Test ended — WPM: ${wpm} • Acc: ${accuracy}% (Login to save)`);
   }
-  // cleanup
   sessionStorage.removeItem('osix_runner');
-  // navigate to home or results
-  location.href = 'home.html';
+  alert(`Test finished — WPM: ${wpm} • Accuracy: ${accuracy}%`);
+  location.href='results.html';
 }
 
-/* ---------- Results & Leaderboard ---------- */
-function renderMyResults(){
-  const container = document.getElementById('myResultsList');
-  if(!container) return;
-  container.innerHTML = '';
-  const uid = getCurrent();
-  if(!uid) { container.innerHTML = '<p class="small">Login to see results</p>'; return; }
-  const users = readUsers(); const u = users.find(x=>x.id===uid);
-  if(!u || !u.results || u.results.length===0){ container.innerHTML = '<p class="small">No attempts yet</p>'; return; }
-  u.results.forEach(r=>{
-    const d = document.createElement('div'); d.className='test-card';
-    d.innerHTML = `<strong>${r.wpm} WPM</strong><div class="small">${r.accuracy}% • ${(new Date(r.date)).toLocaleString()}</div><div class="small muted">${r.passage.slice(0,120)}...</div>`;
-    container.appendChild(d);
-  });
+/* cancel */
+function cancelTest(){ if(runner.interval) clearInterval(runner.interval); sessionStorage.removeItem('osix_runner'); location.href='dashboard.html'; }
+
+/* ---------- Daily live test implementation ---------- */
+/* ensureDailyTest: if no stored test for today, pick random and save */
+function ensureDailyTest(){
+  try{
+    const today = new Date().toISOString().slice(0,10);
+    const s = JSON.parse(localStorage.getItem(LS_DAILY_KEY)||'null');
+    if(!s || s.date !== today){
+      const t = TESTS[Math.floor(Math.random()*TESTS.length)];
+      const obj = {date:today,title:`Daily Test — ${today}`,passage:t.passage,minutes:[60,120,300]}; // 1,2,5 min choices
+      localStorage.setItem(LS_DAILY_KEY, JSON.stringify(obj));
+    }
+  }catch(e){}
+}
+
+/* init daily page */
+function initDaily(){
+  ensureDailyTest();
+  const obj = JSON.parse(localStorage.getItem(LS_DAILY_KEY)||'null');
+  if(!obj){ document.getElementById('dailyWrap').innerText='No daily test'; return; }
+  document.getElementById('dailyTitle').innerText = obj.title;
+  document.getElementById('dailyPass').innerText = obj.passage.slice(0,400);
+  // start buttons
+  document.getElementById('dailyStart1').addEventListener('click', ()=> beginTest(obj.passage, 60));
+  document.getElementById('dailyStart2').addEventListener('click', ()=> beginTest(obj.passage, 120));
+  document.getElementById('dailyStart3').addEventListener('click', ()=> beginTest(obj.passage, 300));
+}
+
+/* ---------- Leaderboard (local) ---------- */
+function initLeaderboard(){
+  renderLeaderBoard();
 }
 function renderLeaderBoard(){
   const container = document.getElementById('leaderboardList');
   if(!container) return;
   container.innerHTML = '';
-  const users = readUsers(); let all = [];
+  const users = readUsers(); let all=[];
   users.forEach(u=> (u.results||[]).forEach(r=> all.push({user:u.name||u.mobile,wpm:r.wpm,acc:r.accuracy,date:r.date})));
   all.sort((a,b)=>b.wpm - a.wpm);
-  if(all.length===0){ container.innerHTML = '<p class="small">No results yet</p>'; return; }
+  if(all.length===0){ container.innerHTML='<p class="small">No results yet</p>'; return; }
   all.slice(0,50).forEach(r=>{
-    const el = document.createElement('div'); el.className='test-card';
-    el.innerHTML = `<strong>${r.user}</strong><div class="small muted">${r.wpm} WPM • ${r.acc}%</div><div class="small">${(new Date(r.date)).toLocaleDateString()}</div>`;
-    container.appendChild(el);
+    const d = document.createElement('div'); d.className='test-card';
+    d.innerHTML = `<strong>${r.user}</strong><div class="small">${r.wpm} WPM • ${r.acc}%</div><div class="small">${(new Date(r.date)).toLocaleString()}</div>`;
+    container.appendChild(d);
   });
 }
 
-/* ---------- init helpers to call from pages ---------- */
-function initIndexPage(){ bindIndex(); }
-function initHomePage(){ bindHome(); }
-function initChoosePage(){ bindHome(); bindChoose(); openTestViewIfPresent(); }
-function initProfilePage(){ bindProfile(); }
-
-/* If choose page loaded and session contains runner, open test view */
-function openTestViewIfPresent(){
-  const runnerS = sessionStorage.getItem('osix_runner');
-  if(runnerS) openTestView();
+/* ---------- Results page ---------- */
+function initResults(){
+  const uid = getCurrent(); if(!uid){ location.href='index.html'; return; }
+  const users = readUsers(); const u = users.find(x=>x.id===uid);
+  const el = document.getElementById('myResultsList'); el.innerHTML='';
+  if(!u || !u.results || u.results.length===0){ el.innerHTML='<p class="small">No attempts yet</p>'; return; }
+  u.results.forEach(r=>{
+    const div = document.createElement('div'); div.className='test-card';
+    div.innerHTML = `<strong>${r.wpm} WPM</strong><div class="small">${r.accuracy}% • ${(new Date(r.date)).toLocaleString()}</div><p class="small">${r.passage.slice(0,180)}...</p>`;
+    el.appendChild(div);
+  });
 }
+
+/* ---------- Profile page ---------- */
+function initProfile(){
+  const uid = getCurrent(); if(!uid){ location.href='index.html'; return; }
+  const users = readUsers(); const u = users.find(x=>x.id===uid);
+  if(!u){ location.href='index.html'; return; }
+  // show name in the 3-dots area
+  document.getElementById('profNameTop').innerText = u.name || u.mobile;
+  // fill fields
+  document.getElementById('pfName').value = u.name||'';
+  document.getElementById('pfMobile').value = u.mobile||'';
+  document.getElementById('pfEmail').value = u.email||'';
+  document.getElementById('pfDistrict').value = u.district||'';
+  document.getElementById('pfState').value = u.state||'';
+  // edit/save
+  document.getElementById('editDetails').addEventListener('click', ()=> toggleProfile(true));
+  document.getElementById('saveDetails').addEventListener('click', ()=> {
+    u.name = document.getElementById('pfName').value.trim();
+    u.mobile = document.getElementById('pfMobile').value.trim();
+    u.email = document.getElementById('pfEmail').value.trim();
+    u.district = document.getElementById('pfDistrict').value.trim();
+    u.state = document.getElementById('pfState').value.trim();
+    writeUsers(users);
+    alert('Saved');
+    toggleProfile(false);
+    document.getElementById('profNameTop').innerText = u.name || u.mobile;
+  });
+  toggleProfile(false);
+}
+function toggleProfile(on){
+  ['pfName','pfMobile','pfEmail','pfDistrict','pfState'].forEach(id=> document.getElementById(id).disabled = !on);
+}
+
+/* ---------- Utilities for pages call ---------- */
+function logout(){ localStorage.removeItem(LS_CUR); location.href='index.html'; }
+
+/* ---------- Expose for HTML to call ---------- */
+window.initIndexPage = initIndexPage;
+window.initDashboard = initDashboard;
+window.initChoose = initChoose;
+window.openTestView = openTestView;
+window.onTyping = onTyping;
+window.finishTestRunner = finishTestRunner;
+window.cancelTest = cancelTest;
+window.startTestById = startTestById;
+window.initDaily = initDaily;
+window.initLeaderboard = initLeaderboard;
+window.initResults = initResults;
+window.initProfile = initProfile;
