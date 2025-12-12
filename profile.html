@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Osix — Profile</title>
+<link rel="stylesheet" href="style.css"></head>
+<body>
+  <div class="app">
+    <aside class="sidebar glass">
+      <div class="side-top">
+        <div class="side-avatar"><img id="sideAvatar" src=""/></div>
+        <div><div id="sideName" class="side-name">Student</div></div>
+      </div>
+      <nav class="side-menu">
+        <button class="side-btn" onclick="location.href='home.html'">Home</button>
+        <button class="side-btn" onclick="location.href='choose.html'">Choose Test</button>
+        <button class="side-btn" onclick="doLogout()">Logout</button>
+      </nav>
+      <div class="side-bottom">
+        <svg width="36" height="36" viewBox="0 0 100 100"><circle cx="50" cy="30" r="12" fill="#6ea8fe"/></svg>
+        <div class="tag">Made in India</div>
+      </div>
+    </aside>
+
+    <div class="main-col">
+      <header class="topbar glass">
+        <div class="top-left"><div class="top-avatar"><img id="topAvatar" src=""/></div><div id="topUserName" class="top-username">Student</div></div>
+        <div></div>
+      </header>
+
+      <div class="content page">
+        <section id="pageProfile" class="page">
+          <h2>My Profile</h2>
+          <div class="profile-grid">
+            <div class="pf-left">
+              <img id="profileBig" class="profile-big" src=""/>
+              <div style="margin-top:8px"><button id="choosePicBtn" class="btn">Choose Profile Picture</button><input id="filePic" class="hidden" type="file" accept="image/*"/></div>
+            </div>
+            <div class="pf-right">
+              <label>Name</label><input id="pfName" class="input" disabled/>
+              <label>Mobile</label><input id="pfMobile" class="input" disabled/>
+              <label>Email</label><input id="pfEmail" class="input" disabled/>
+              <label>District</label><input id="pfDistrict" class="input" disabled/>
+              <label>State</label><input id="pfState" class="input" disabled/>
+              <div style="margin-top:10px">
+                <button id="editDetails" class="btn">Edit Details</button>
+                <button id="saveDetails" class="btn primary">Save</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+<script src="script.js"></script>
+<script>initProfilePage();</script>
+</body>
+  </html>
