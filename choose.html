@@ -1,88 +1,76 @@
 <!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Osix — Choose Test</title>
-<link rel="stylesheet" href="style.css"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Osix — Choose Test</title><link rel="stylesheet" href="style.css"></head>
 <body>
   <div class="app">
-    <aside class="sidebar glass">
-      <div class="side-top">
-        <div class="side-avatar"><img id="sideAvatar" src=""/></div>
-        <div><div id="sideName" class="side-name">Student</div></div>
-      </div>
-      <nav class="side-menu">
-        <button class="side-btn" data-page="home" onclick="location.href='home.html'">Home</button>
-        <button class="side-btn active" data-page="choose">Choose Test</button>
-        <button class="side-btn" data-page="results" onclick="location.href='home.html'">My results</button>
-        <button class="side-btn" data-page="logout" onclick="doLogout()">Logout</button>
-      </nav>
-      <div class="side-bottom">
-        <svg width="36" height="36" viewBox="0 0 100 100"><circle cx="50" cy="30" r="12" fill="#6ea8fe"/></svg>
-        <div class="tag">Made in India</div>
-      </div>
+    <aside class="sidebar">
+      <div class="side-title">Menu</div>
+      <button class="side-btn" onclick="location.href='dashboard.html'">Home</button>
+      <button class="side-btn active">Choose Test</button>
+      <button class="side-btn" onclick="location.href='results.html'">My Results</button>
+      <button class="side-btn" onclick="logout()">Logout</button>
+      <div class="side-bottom"><div>OSIX</div><div class="small">Made in India</div></div>
     </aside>
 
-    <div class="main-col">
-      <header class="topbar glass">
-        <div class="top-left"><div class="top-avatar"><img id="topAvatar" src=""/></div><div id="topUserName" class="top-username">Student</div></div>
-        <div class="righttop"><img id="brandLogoSmall2" class="brand-small" src=""/></div>
-      </header>
+    <div style="flex:1;display:flex;flex-direction:column">
+      <div class="topbar">
+        <div class="top-left"><div class="dots">•••</div><div style="margin-left:8px"><div id="topNameChoose" class="top-user">User</div></div></div>
+        <div>OSIX</div>
+      </div>
 
-      <div class="content page pageChoose">
-        <h2 id="chooseTitle">Choose Test</h2>
+      <div class="content page">
+        <h3 id="chooseTitle" class="big-title">Choose Test</h3>
         <div class="choose-grid">
-          <div class="choose-left card">
-            <label class="label">Select difficulty</label>
+          <div class="choose-left">
+            <label class="label">Difficulty</label>
             <select id="chooseDiff" class="input"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
             <label class="label">Time (seconds)</label>
-            <input id="chooseTime" class="input" type="number" value="60" min="10" max="600"/>
+            <input id="chooseTime" class="input" type="number" value="60" min="10" max="600">
             <label class="label">Language</label>
-            <select id="chooseLang" class="input"><option value="english">English</option><option value="hindi">हिन्दी (Mangal)</option></select>
-            <button id="startChosen" class="btn primary">Start Test</button>
+            <select id="chooseLang" class="input"><option value="english">English</option><option value="hindi">हिन्दी</option></select>
+            <button id="startChosen" class="btn" style="width:100%;margin-top:12px">Start Test</button>
           </div>
-          <div class="choose-right card">
+
+          <div class="choose-right">
             <h4>Test Settings</h4>
-            <label><input id="optHighlight" type="checkbox" checked/> Highlight words</label><br/>
-            <label><input id="optScroll" type="checkbox" checked/> Auto scroll</label><br/>
-            <label><input id="optBack" type="checkbox" checked/> Allow backspace</label><br/>
-            <label><input id="optFullscreen" type="checkbox" /> Full screen</label><br/>
-            <label>Font size <input id="optFont" type="range" min="11" max="100" value="17"/></label><br/>
-            <label><input id="optAutoTimer" type="checkbox" /> Auto timer</label>
+            <label><input id="optHighlight" type="checkbox" checked> Highlight words</label><br>
+            <label><input id="optScroll" type="checkbox" checked> Auto scroll</label><br>
+            <label><input id="optBack" type="checkbox" checked> Allow backspace</label><br>
+            <label>Font size <input id="optFont" type="range" min="11" max="40" value="17"></label>
             <div style="margin-top:12px"><h4>Preview</h4><div id="passagePreview" class="passage"></div></div>
           </div>
         </div>
 
-        <!-- Test runner view -->
-        <div id="testRunner" class="card hidden" style="margin-top:14px">
-          <div class="test-top" style="display:flex;gap:14px;align-items:center">
-            <div>Time left: <strong id="tLeft">60</strong>s</div>
-            <div>WPM: <strong id="tWpm">0</strong></div>
-            <div>Acc: <strong id="tAcc">0</strong>%</div>
+        <div id="testRunner" class="hidden" style="margin-top:16px">
+          <div class="test-top">
+            <div>Time: <span id="tLeft">0</span>s</div>
+            <div>WPM: <span id="tWpm">0</span></div>
+            <div>Acc: <span id="tAcc">0</span>%</div>
           </div>
           <div id="testPass" class="passage" style="margin-top:10px"></div>
           <textarea id="testInput" placeholder="Start typing..." oninput="onTyping()"></textarea>
-          <div style="margin-top:8px"><button class="btn primary" onclick="finishTestRunner()">Finish</button> <button class="btn" onclick="cancelTest()">Cancel</button></div>
+          <div style="margin-top:8px"><button class="btn" onclick="finishTestRunner()">Finish</button> <button class="btn" onclick="cancelTest()">Cancel</button></div>
         </div>
-
       </div>
     </div>
   </div>
 
 <script src="script.js"></script>
 <script>
-  initChoosePage();
-  // set preview when page loads
-  document.getElementById('passagePreview').innerText = TESTS[Math.floor(Math.random()*TESTS.length)].passage.slice(0,360);
+  initChoose();
+  // bind preview change
+  document.getElementById('optFont').addEventListener('input', ()=> {
+    const v = document.getElementById('optFont').value;
+    document.getElementById('testPass').style.fontSize = v+'px';
+  });
   document.getElementById('startChosen').addEventListener('click', ()=> {
-    const time = parseInt(document.getElementById('chooseTime').value,10)||60;
-    // pick random matching difficulty
-    const diff = document.getElementById('chooseDiff').value;
-    const pool = TESTS.filter(t=>t.difficulty===diff) || TESTS;
-    const t = pool[Math.floor(Math.random()*pool.length)];
+    const time = parseInt(document.getElementById('chooseTime').value,10) || 60;
+    // pick random
+    const t = TESTS[Math.floor(Math.random()*TESTS.length)];
     beginTest(t.passage, time);
-    // show runner area
     document.getElementById('testRunner').classList.remove('hidden');
     openTestView();
   });
+  // fill top name
+  const cur = getCurrent(); if(cur){ const u = readUsers().find(x=>x.id===cur); if(u) document.getElementById('topNameChoose').innerText = u.name; }
 </script>
-</body>
-</html>
+</body></html>
