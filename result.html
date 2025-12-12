@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Osix — Results</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="side-title">Menu</div>
+    <button class="side-btn" onclick="location.href='dashboard.html'">Home</button>
+    <button class="side-btn active">My Results</button>
+    <div class="side-bottom"><div>OSIX</div><div class="small">Made in India</div></div>
+  </aside>
+
+  <div style="flex:1;display:flex;flex-direction:column">
+    <div class="topbar"><div class="top-left"><div class="dots">•••</div><div style="margin-left:8px"><div class="top-user">Results</div></div></div><div>OSIX</div></div>
+    <div class="content page">
+      <h3 class="big-title">My Results</h3>
+      <div id="myResultsList"></div>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+<script>initResults();</script>
+</body></html>
